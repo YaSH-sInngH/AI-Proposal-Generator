@@ -1,0 +1,27 @@
+{
+  "name": "doc-proposal-generator",
+  "version": "1.0.0",
+  "description": "AI-powered Proposal Document Generator",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [
+    "proposal",
+    "generator",
+    "ai",
+    "openai",
+    "docx"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "docx": "^8.5.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "openai": "^4.20.1"
+  }
+}
