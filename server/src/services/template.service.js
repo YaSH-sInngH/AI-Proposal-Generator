@@ -11,20 +11,16 @@ export function validateProposalStructure(data) {
   const errors = [];
 
   // Check required top-level fields
-  if (!data.projectTitle || typeof data.projectTitle !== 'string') {
-    errors.push('Missing or invalid projectTitle');
-  }
-
-  if (!data.overview || typeof data.overview !== 'string') {
-    errors.push('Missing or invalid overview');
-  }
-
   if (!data.phases || !Array.isArray(data.phases) || data.phases.length !== 3) {
     errors.push('phases must be an array with exactly 3 phases');
   }
 
   if (!data.overallTotalHours || typeof data.overallTotalHours !== 'string') {
     errors.push('Missing or invalid overallTotalHours');
+  }
+
+  if (!data.techStack || !Array.isArray(data.techStack)) {
+    errors.push('Missing or invalid techStack array');
   }
 
   // Validate phases structure
@@ -39,7 +35,7 @@ export function validateProposalStructure(data) {
       if (!phase.name || typeof phase.name !== 'string') {
         errors.push(`Phase ${index + 1}: Missing or invalid name`);
       } else if (!expectedPhaseNames.includes(phase.name)) {
-        errors.push(`Phase ${index + 1}: Name must match one of the expected phase names`);
+        errors.push(`Phase ${index + 1}: Name must be "${expectedPhaseNames[index]}"`);
       }
 
       if (!phase.totalHours || typeof phase.totalHours !== 'string') {
@@ -51,9 +47,17 @@ export function validateProposalStructure(data) {
       } else if (phase.tasks.length === 0) {
         errors.push(`Phase ${index + 1}: tasks array cannot be empty`);
       } else {
+        // Validate each task has title and explanation (hours are optional)
         phase.tasks.forEach((task, taskIndex) => {
-          if (typeof task !== 'string' || task.trim().length === 0) {
-            errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Must be a non-empty string`);
+          if (!task || typeof task !== 'object') {
+            errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Must be an object`);
+          } else {
+            if (!task.title || typeof task.title !== 'string' || task.title.trim().length === 0) {
+              errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Missing or invalid title`);
+            }
+            if (!task.explanation || typeof task.explanation !== 'string' || task.explanation.trim().length < 50) {
+              errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Missing or invalid explanation (must be at least 50 characters)`);
+            }
           }
         });
       }

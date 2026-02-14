@@ -7,7 +7,8 @@ import {
   Paragraph,
   TextRun,
   HeadingLevel,
-  AlignmentType
+  AlignmentType,
+  LevelFormat
 } from 'docx';
 
 /**
@@ -16,81 +17,152 @@ import {
  * @returns {Promise<Buffer>} DOCX file buffer
  */
 export async function generateProposalDoc(proposalData) {
-  const { projectTitle, overview, phases, overallTotalHours } = proposalData;
+  const { phases, overallTotalHours, techStack } = proposalData;
 
-  // Build document children
+  const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: { font: "Arial", size: 24 } // 12pt
+        }
+      },
+      paragraphStyles: [
+        {
+          id: "Heading1",
+          name: "Heading 1",
+          basedOn: "Normal",
+          next: "Normal",
+          quickFormat: true,
+          run: { size: 28, bold: true, font: "Arial" }, // 14pt
+          paragraph: {
+            spacing: { before: 240, after: 200 },
+            outlineLevel: 0
+          }
+        }
+      ]
+    },
+    numbering: {
+      config: [
+        {
+          reference: "arrow-bullets",
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.BULLET,
+              text: "→",
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 720, hanging: 360 }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            size: {
+              width: 12240,
+              height: 15840
+            },
+            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+          }
+        },
+        children: buildDocumentContent(phases, overallTotalHours, techStack)
+      }
+    ]
+  });
+
+  return await Packer.toBuffer(doc);
+}
+
+/**
+ * Builds the document content structure
+ */
+function buildDocumentContent(phases, overallTotalHours, techStack) {
   const children = [];
 
-  // Project Title (Heading 1)
-  children.push(
-    new Paragraph({
-      text: projectTitle,
-      heading: HeadingLevel.HEADING_1,
-      spacing: { after: 400 }
-    })
-  );
-
-  // Overview section
-  children.push(
-    new Paragraph({
-      text: 'Overview',
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 300, after: 200 }
-    })
-  );
-
-  children.push(
-    new Paragraph({
-      text: overview,
-      spacing: { after: 400 }
-    })
-  );
-
-  // Phases
-  phases.forEach((phase, index) => {
-    // Phase heading (Heading 2)
+  // Each phase
+  phases.forEach((phase, phaseIndex) => {
+    // Phase heading with hours
     children.push(
       new Paragraph({
-        text: `${phase.name} (${phase.totalHours} hrs)`,
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: index === 0 ? 0 : 300, after: 200 }
+        heading: HeadingLevel.HEADING_1,
+        children: [
+          new TextRun(`${phase.name} (${phase.totalHours}hrs)`)
+        ],
+        spacing: { 
+          before: phaseIndex === 0 ? 0 : 400, 
+          after: 200 
+        }
       })
     );
 
-    // Tasks as bullet points
-    phase.tasks.forEach((task) => {
+    // Tasks with arrow bullets and explanation paragraphs
+    phase.tasks.forEach((task, taskIndex) => {
+      // Task title with arrow bullet (NO HOURS HERE)
       children.push(
         new Paragraph({
-          text: task,
-          bullet: {
-            level: 0
+          numbering: { 
+            reference: "arrow-bullets", 
+            level: 0 
           },
-          spacing: { after: 100 }
+          children: [
+            new TextRun(task.title)
+          ],
+          spacing: { after: 120 }
+        })
+      );
+
+      // Explanation paragraph (indented to align with task)
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun(task.explanation)
+          ],
+          indent: {
+            left: 720 // Same indent as bullet point text
+          },
+          spacing: { after: taskIndex === phase.tasks.length - 1 ? 200 : 160 }
         })
       );
     });
   });
 
-  // Overall Total Hours
+  // Spacing before total
   children.push(
     new Paragraph({
-      text: `Overall Total Hours — ${overallTotalHours} hrs`,
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 400, after: 200 },
-      alignment: AlignmentType.CENTER
+      children: [new TextRun("")],
+      spacing: { before: 300, after: 100 }
     })
   );
 
-  // Create document
-  const doc = new Document({
-    sections: [
-      {
-        properties: {},
-        children
-      }
-    ]
-  });
+  // Overall Total Hours
+  children.push(
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [
+        new TextRun(`Overall Total Hours → ${overallTotalHours}hrs`)
+      ],
+      spacing: { before: 200, after: 200 }
+    })
+  );
 
-  // Generate buffer
-  return await Packer.toBuffer(doc);
+  // Tech Stack
+  if (techStack && techStack.length > 0) {
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun(`Tech Stack: ${techStack.join(', ')}`)
+        ],
+        spacing: { before: 100 }
+      })
+    );
+  }
+
+  return children;
 }

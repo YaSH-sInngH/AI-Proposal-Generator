@@ -34,7 +34,7 @@ function ChatInput({ onSend, isLoading, hasMessages }) {
       <div className="max-w-container mx-auto px-6 py-4">
         <div className="max-w-content mx-auto">
           <form onSubmit={handleSubmit}>
-            <div className="relative flex items-end gap-3 bg-bg-dark border border-border-subtle rounded-xl px-4 py-3 focus-within:border-border-focus transition-colors">
+            <div className="relative flex items-center gap-3 bg-bg-dark border border-border-subtle rounded-xl px-4 py-3 focus-within:border-border-focus transition-colors">
               <textarea
                 ref={textareaRef}
                 className="flex-1 bg-transparent border-none outline-none text-text-primary placeholder:text-text-secondary resize-none overflow-hidden text-base leading-relaxed max-h-48"
@@ -47,7 +47,7 @@ function ChatInput({ onSend, isLoading, hasMessages }) {
               />
               <button
                 type="submit"
-                className="flex items-center justify-center w-10 h-10 rounded-lg bg-transparent border border-border-subtle text-text-primary hover:bg-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-transparent border border-white text-text-primary hover:bg-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                 disabled={!input.trim() || isLoading}
                 aria-label="Send message"
               >

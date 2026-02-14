@@ -2,10 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import ChatInput from './components/ChatInput';
 import Message from './components/Message';
 import { generateProposal } from './services/api';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFileWord  } from "@fortawesome/free-solid-svg-icons";
+
+import ProgressIndicator from './components/ProgressIndicator';
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [progressDataMap, setProgressDataMap] = useState({}); // Map of queryId -> progress data
   const messagesEndRef = useRef(null);
   const hasMessages = messages.length > 0;
 
@@ -20,49 +25,112 @@ function App() {
   const handleSendMessage = async (query) => {
     if (!query.trim()) return;
 
-    // Add user message
+    // Create a unique query ID for this request
+    const queryId = Date.now();
+    
+    // Add user message with queryId reference
     const userMessage = {
-      id: Date.now(),
+      id: queryId,
       role: 'user',
       content: query,
-      timestamp: new Date()
+      timestamp: new Date(),
+      queryId: queryId
     };
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
+    // Initialize progress state for this query
+    setProgressDataMap(prev => ({
+      ...prev,
+      [queryId]: {
+        currentStage: 'initializing',
+        stagesCompleted: []
+      }
+    }));
+
     try {
-      // Generate proposal
-      const blob = await generateProposal(query);
+      // Define stage order for tracking
+      const stageOrder = ['initializing', 'analyzing', 'generated', 'validating', 'validated', 'creating', 'finalizing', 'complete'];
       
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'Project-Proposal.docx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      // Add success message
+      // Generate proposal with progress callback
+      const response = await generateProposal(query, (progressMessage, stage) => {
+        console.log('Progress update received:', progressMessage, stage); // Debug log
+        
+        // Force immediate state update for each progress event
+        setProgressDataMap(prev => {
+          const queryProgress = prev[queryId] || { currentStage: 'initializing', stagesCompleted: [] };
+          
+          const stagesCompleted = [...(queryProgress.stagesCompleted || [])];
+          const currentStageIndex = stageOrder.indexOf(stage);
+          const prevStageIndex = stageOrder.indexOf(queryProgress.currentStage);
+          
+          // Mark previous stage as completed when moving to next
+          if (prevStageIndex >= 0 && prevStageIndex < currentStageIndex) {
+            const prevStage = stageOrder[prevStageIndex];
+            if (!stagesCompleted.includes(prevStage)) {
+              stagesCompleted.push(prevStage);
+            }
+          }
+          
+          // Mark all stages before current as completed
+          for (let i = 0; i < currentStageIndex; i++) {
+            const stageToComplete = stageOrder[i];
+            if (!stagesCompleted.includes(stageToComplete)) {
+              stagesCompleted.push(stageToComplete);
+            }
+          }
+          
+          // Return new object to trigger re-render immediately
+          const newState = {
+            currentStage: stage,
+            stagesCompleted: [...stagesCompleted] // Create new array
+          };
+          
+          console.log('Updating progress state:', newState); // Debug log
+          return {
+            ...prev,
+            [queryId]: newState
+          };
+        });
+      });
+      
+      // Mark all stages as completed including the final one
+      setProgressDataMap(prev => ({
+        ...prev,
+        [queryId]: {
+          currentStage: 'complete',
+          stagesCompleted: ['initializing', 'analyzing', 'generated', 'validating', 'validated', 'creating', 'finalizing', 'complete']
+        }
+      }));
+      
+      // Add success message with file and queryId reference
       const successMessage = {
-        id: Date.now() + 1,
+        id: queryId + 1,
         role: 'assistant',
-        content: 'Your proposal document has been generated and downloaded successfully!',
+        content: response.message || 'Your proposal document has been generated successfully!',
         timestamp: new Date(),
-        isSuccess: true
+        isSuccess: true,
+        file: response.file,
+        queryId: queryId // Link to the query
       };
-
+      
       setMessages(prev => [...prev, successMessage]);
     } catch (error) {
-      // Add error message
+      // Clear progress for this query and show error
+      setProgressDataMap(prev => {
+        const newMap = { ...prev };
+        delete newMap[queryId];
+        return newMap;
+      });
+      
       const errorMessage = {
-        id: Date.now() + 1,
+        id: queryId + 1,
         role: 'assistant',
         content: error.message || 'Failed to generate proposal. Please try again.',
         timestamp: new Date(),
-        isError: true
+        isError: true,
+        queryId: queryId // Link to the query
       };
 
       setMessages(prev => [...prev, errorMessage]);
@@ -94,13 +162,7 @@ function App() {
           {!hasMessages && (
             <div className="flex flex-col items-center justify-center text-center py-12">
               <div className="mb-6 text-text-secondary">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <path d="M14 2v6h6" />
-                  <path d="M16 13H8" />
-                  <path d="M16 17H8" />
-                  <path d="M10 9H8" />
-                </svg>
+                <FontAwesomeIcon icon={faFileWord} className="text-6xl"/>
               </div>
               <h2 className="text-3xl font-bold text-text-primary mb-3">
                 Generate Your Proposal
@@ -113,10 +175,51 @@ function App() {
 
           {hasMessages && (
             <div className="space-y-6 pb-6">
-              {messages.map((message) => (
-                <Message key={message.id} message={message} />
-              ))}
-              {isLoading && (
+              {/* Group messages by query thread */}
+              {(() => {
+                // Get all unique query IDs
+                const queryIds = [...new Set(messages.map(msg => msg.queryId).filter(Boolean))];
+                
+                // If no queryIds, render messages in order
+                if (queryIds.length === 0) {
+                  return messages.map((message) => (
+                    <Message key={message.id} message={message} />
+                  ));
+                }
+                
+                // Render each query thread: User -> Progress -> Assistant
+                return queryIds.map(queryId => {
+                  const userMessage = messages.find(msg => msg.role === 'user' && msg.queryId === queryId);
+                  const assistantMessage = messages.find(msg => msg.role === 'assistant' && msg.queryId === queryId);
+                  const progressData = progressDataMap[queryId];
+                  
+                  return (
+                    <div key={queryId} className="space-y-6">
+                      {/* User Query */}
+                      {userMessage && (
+                        <Message key={userMessage.id} message={userMessage} />
+                      )}
+                      
+                      {/* Progress Indicator - Event stream log for this query */}
+                      {progressData && (
+                        <div className="w-full px-6 py-6 rounded-xl bg-bg-dark">
+                          <ProgressIndicator 
+                            currentStage={progressData.currentStage || 'initializing'}
+                            stagesCompleted={progressData.stagesCompleted || []}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Download/Response message for this query */}
+                      {assistantMessage && (
+                        <Message key={assistantMessage.id} message={assistantMessage} />
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+              
+              {isLoading && Object.keys(progressDataMap).length === 0 && (
                 <div className="flex gap-4">
                   <div className="w-10 h-10 rounded-lg bg-border-subtle flex items-center justify-center flex-shrink-0">
                     <div className="text-sm font-medium text-text-secondary">AI</div>

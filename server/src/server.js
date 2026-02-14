@@ -1,11 +1,7 @@
-/**
- * Server entry point
- */
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import proposalRoutes from './routes/proposal.routes.js';
-// Load environment variables FIRST, before any other imports
 dotenv.config();
 
 const app = express();
@@ -73,7 +69,7 @@ const PORT = process.env.PORT || 5000;
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Proposal Generator API server running on port ${PORT}`);
-  console.log(`📝 POST /generate-proposal - Generate proposal document`);
-  console.log(`❤️  GET /health - Health check`);
+  console.log(`:) Proposal Generator API server running on port ${PORT}`);
+  console.log(`:) POST /generate-proposal - Generate proposal document`);
+  console.log(`:) GET /health - Health check`);
 });
