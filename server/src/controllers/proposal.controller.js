@@ -48,6 +48,63 @@ export async function generateProposalController(req, res) {
       return;
     }
 
+    const trimmedQuery = query.trim();
+    
+    // Validate query - prevent vague queries from generating documents
+    const isVagueQuery = (q) => {
+      const lowerQuery = q.toLowerCase();
+      
+      // Very short queries (< 15 chars) are likely vague
+      if (q.length < 15) {
+        return true;
+      }
+      
+      // Common greetings
+      const greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening', 'greetings'];
+      if (greetings.some(greeting => lowerQuery === greeting || lowerQuery.startsWith(greeting + ' '))) {
+        return true;
+      }
+      
+      // Check for project-related keywords
+      const projectKeywords = [
+        'build', 'create', 'generate', 'proposal', 'project', 'develop', 'make', 
+        'design', 'implement', 'app', 'application', 'website', 'web app', 'system',
+        'api', 'backend', 'frontend', 'platform', 'service', 'feature', 'functionality'
+      ];
+      
+      const hasProjectKeyword = projectKeywords.some(keyword => lowerQuery.includes(keyword));
+      
+      // If no project keywords and query is short or just personal info, it's vague
+      if (!hasProjectKeyword) {
+        // Check if it's just a name or personal introduction
+        const personalPatterns = [
+          /^i am /i,
+          /^my name is /i,
+          /^i'm /i,
+          /^this is /i
+        ];
+        
+        if (personalPatterns.some(pattern => pattern.test(lowerQuery)) && q.length < 50) {
+          return true;
+        }
+        
+        // If query is short and has no project keywords, it's vague
+        if (q.length < 30) {
+          return true;
+        }
+      }
+      
+      return false;
+    };
+    
+    if (isVagueQuery(trimmedQuery)) {
+      sendSSE(res, 'error', {
+        error: 'Please provide a detailed project description. Include what you want to build, technologies to use, and key features. Example: "Create a React web application with Node.js backend for 50 hours"'
+      });
+      res.end();
+      return;
+    }
+
     // Send initial progress update
     sendSSE(res, 'progress', {
       message: 'Starting proposal generation...',

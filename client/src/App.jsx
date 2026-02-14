@@ -167,9 +167,21 @@ function App() {
               <h2 className="text-3xl font-bold text-text-primary mb-3">
                 Generate Your Proposal
               </h2>
-              <p className="text-base text-text-secondary max-w-md">
+              <p className="text-base text-text-secondary max-w-md mb-6">
                 Describe your project requirements and I'll create a professional proposal document for you.
               </p>
+              <div className="max-w-2xl mx-auto px-6 py-4 bg-gradient-to-br from-black via-slate-900 to-black border border-border-subtle rounded-xl text-left">
+                <p className="text-sm font-medium text-text-primary mb-2">Instructions:</p>
+                <ul className="text-sm text-text-secondary space-y-1 list-disc list-inside">
+                  <li>Describe your project type (e.g., web application, mobile app, API, system)</li>
+                  <li>Specify technologies or frameworks you want to use (e.g., React, Node.js, MongoDB)</li>
+                  <li>List key features and functionality requirements</li>
+                  <li>Optionally include timeline or hours (e.g., "50 hours")</li>
+                </ul>
+                <p className="text-sm text-text-secondary mt-3 italic">
+                  Example: "Create a React e-commerce website with payment integration and user authentication for 40 hours"
+                </p>
+              </div>
             </div>
           )}
 

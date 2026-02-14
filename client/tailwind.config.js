@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Manrope', 'sans-serif'],
+      },
       colors: {
         'bg-dark': '#0F0F0F',
         'bg-dark-alt': '#111111',
