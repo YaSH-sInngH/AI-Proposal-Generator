@@ -51,6 +51,14 @@ function ProgressIndicator({ currentStage, stagesCompleted = [] }) {
               return null;
             }
 
+            // Check if next stage should be shown (for connector line)
+            const nextStage = !isLast ? STAGES[index + 1] : null;
+            const nextStageShouldShow = nextStage && (
+              isComplete || 
+              (index + 1) <= currentStageIndex || 
+              stagesCompleted.includes(nextStage.id)
+            );
+
             return (
               <div key={stage.id} className="relative">
                 <div
@@ -70,7 +78,20 @@ function ProgressIndicator({ currentStage, stagesCompleted = [] }) {
                         className="text-xs text-green-400"
                       />
                     ) : state === 'active' ? (
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                      <div className="spinner" style={{ fontSize: '16px' }}>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                        <div className="spinner-blade"></div>
+                      </div>
                     ) : (
                       <div className="w-1.5 h-1.5 rounded-full bg-text-secondary opacity-50"></div>
                     )}
@@ -88,10 +109,10 @@ function ProgressIndicator({ currentStage, stagesCompleted = [] }) {
                   </span>
                 </div>
 
-                {/* Connector Line (except for last item) */}
-                {!isLast && shouldShow && (
-                  <div className={`absolute left-2 top-5 w-0.5 h-5 ${
-                    state === 'completed' || (isComplete && index < STAGES.length - 1)
+                {/* Connector Line (except for last item and when next stage isn't shown) */}
+                {!isLast && shouldShow && nextStageShouldShow && (
+                  <div className={`absolute left-2 top-4 w-0.5 h-5 ${
+                    state === 'completed'
                       ? 'bg-green-400 opacity-30'
                       : 'bg-border-subtle opacity-20'
                   }`}></div>
