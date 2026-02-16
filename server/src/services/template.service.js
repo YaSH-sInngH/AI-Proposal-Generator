@@ -47,16 +47,18 @@ export function validateProposalStructure(data) {
       } else if (phase.tasks.length === 0) {
         errors.push(`Phase ${index + 1}: tasks array cannot be empty`);
       } else {
-        // Validate each task has title and explanation (hours are optional)
+        // Validate each task has description and hours
         phase.tasks.forEach((task, taskIndex) => {
           if (!task || typeof task !== 'object') {
             errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Must be an object`);
           } else {
-            if (!task.title || typeof task.title !== 'string' || task.title.trim().length === 0) {
-              errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Missing or invalid title`);
+            if (!task.description || typeof task.description !== 'string' || task.description.trim().length === 0) {
+              errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Missing or invalid description`);
+            } else if (task.description.trim().length < 50) {
+              errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Description must be at least 50 characters`);
             }
-            if (!task.explanation || typeof task.explanation !== 'string' || task.explanation.trim().length < 50) {
-              errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Missing or invalid explanation (must be at least 50 characters)`);
+            if (!task.hours || typeof task.hours !== 'string') {
+              errors.push(`Phase ${index + 1}, Task ${taskIndex + 1}: Missing or invalid hours`);
             }
           }
         });

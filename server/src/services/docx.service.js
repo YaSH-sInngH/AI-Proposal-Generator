@@ -96,15 +96,16 @@ function buildDocumentContent(phases, overallTotalHours, techStack) {
           new TextRun(`${phase.name} (${phase.totalHours}hrs)`)
         ],
         spacing: { 
-          before: phaseIndex === 0 ? 0 : 400, 
+          before: phaseIndex === 0 ? 0 : 300, 
           after: 200 
         }
       })
     );
 
-    // Tasks with arrow bullets and explanation paragraphs
-    phase.tasks.forEach((task, taskIndex) => {
-      // Task title with arrow bullet (NO HOURS HERE)
+    // Tasks with arrow bullets
+    phase.tasks.forEach((task) => {
+      // Remove any existing hours pattern from description (e.g., "(4hrs)", "(4 hrs)", "(4hrs)")
+      const cleanDescription = task.description.replace(/\s*\([\d.]+\s*hrs?\)\s*$/i, '').trim();
       children.push(
         new Paragraph({
           numbering: { 
@@ -112,22 +113,9 @@ function buildDocumentContent(phases, overallTotalHours, techStack) {
             level: 0 
           },
           children: [
-            new TextRun(task.title)
+            new TextRun(`${cleanDescription} (${task.hours}hrs)`)
           ],
-          spacing: { after: 120 }
-        })
-      );
-
-      // Explanation paragraph (indented to align with task)
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun(task.explanation)
-          ],
-          indent: {
-            left: 720 // Same indent as bullet point text
-          },
-          spacing: { after: taskIndex === phase.tasks.length - 1 ? 200 : 160 }
+          spacing: { after: 80 }
         })
       );
     });
